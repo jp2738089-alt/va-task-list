@@ -87,35 +87,35 @@
     }
 
     function generateTasks() {
-  const text = document.getElementById("transcription").value;
+      const text = document.getElementById("transcription").value;
 
-  if (!text.trim()) return;
+      if (!text.trim()) return;
 
-  // Split using ANY type of line break
-  const lines = text.split(/\r?\n/);
+      // SMART LINE SPLIT (works everywhere)
+      const lines = text.split(/\r?\n/);
 
-  lines.forEach(line => {
-    const cleaned = line.trim();
+      lines.forEach(line => {
+        const cleaned = line.trim();
 
-    if (!cleaned) return;
+        if (!cleaned) return;
 
-    // Remove numbers like:
-    // 1. Task
-    // 2) Task
-    // 3 - Task
-    const taskText = cleaned.replace(/^\d+[\).\-\s]+/, "");
+        // Remove numbering styles:
+        // 1. Task
+        // 2) Task
+        // 3 - Task
+        const taskText = cleaned.replace(/^\d+[\).\-\s]+/, "");
 
-    tasks.push({
-      text: taskText,
-      completed: false
-    });
-  });
+        tasks.push({
+          text: taskText,
+          completed: false
+        });
+      });
 
-  document.getElementById("transcription").value = "";
+      document.getElementById("transcription").value = "";
 
-  saveTasks();
-  renderTasks();
-}
+      saveTasks();
+      renderTasks();
+    }
 
     function toggleTask(index) {
       tasks[index].completed = !tasks[index].completed;
