@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VA Task Generator</title>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      display: flex;
+      justify-content: center;
+      padding-top: 40px;
+    }
+
+    .app {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 500px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      margin-bottom: 10px;
+    }
+
+    .task {
+      display: flex;
+      align-items: center;
+      margin: 8px 0;
+      padding: 10px;
+      background: #f9fafb;
+      border-radius: 8px;
+    }
+
+    .task.completed span {
+      text-decoration: line-through;
+      opacity: 0.5;
+    }
+
+    button {
+      cursor: pointer;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <h2>VA Task Generator</h2>
+
+    <textarea id="transcription" placeholder="Paste tasks here..."></textarea>
+
+    <button onclick="generateTasks()">Generate Tasks</button>
+
+    <hr>
+
+    <div id="taskList"></div>
+  </div>
+
+  <script>
+    let tasks = JSON.parse(localStorage.getItem("va_tasks")) || [];
+
+    function saveTasks() {
+      localStorage.setItem("va_tasks", JSON.stringify(tasks));
+    }
+
+    function renderTasks() {
+      const list = document.getElementById("taskList");
+      list.innerHTML = "";
+
+      tasks.forEach((task, index) => {
+        const div = document.createElement("div");
+        div.className = "task " + (task.completed ? "completed" : "");
+
+        div.innerHTML = `
+          <input type="checkbox" ${task.completed ? "checked" : ""} 
+            onchange="toggleTask(${index})" />
+          <span style="margin-left: 10px;">${task.text}</span>
+          <button style="margin-left:auto;" onclick="deleteTask(${index})">❌</button>
+        `;
+
+        list.appendChild(div);
+      });
+    }
+
+    function generateTasks() {
+      const text = document.getElementById("transcription").value;
+
+      if (!text.trim()) return;
+
+      const lines = text.split("\\n");
+
+      lines.forEach(line => {
+        if (line.trim()) {
+          tasks.push({
+            text: line.trim(),
+            completed: false
+          });
+        }
+      });
+
+      document.getElementById("transcription").value = "";
+
+      saveTasks();
+      renderTasks();
+    }
+
+    function toggleTask(index) {
+      tasks[index].completed = !tasks[index].completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      saveTasks();
+      renderTasks();
+    }
+
+    renderTasks();
+  </script>
+</body>
+</html>
