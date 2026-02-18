@@ -87,26 +87,35 @@
     }
 
     function generateTasks() {
-      const text = document.getElementById("transcription").value;
+  const text = document.getElementById("transcription").value;
 
-      if (!text.trim()) return;
+  if (!text.trim()) return;
 
-      const lines = text.split("\\n");
+  // Split using ANY type of line break
+  const lines = text.split(/\r?\n/);
 
-      lines.forEach(line => {
-        if (line.trim()) {
-          tasks.push({
-            text: line.trim(),
-            completed: false
-          });
-        }
-      });
+  lines.forEach(line => {
+    const cleaned = line.trim();
 
-      document.getElementById("transcription").value = "";
+    if (!cleaned) return;
 
-      saveTasks();
-      renderTasks();
-    }
+    // Remove numbers like:
+    // 1. Task
+    // 2) Task
+    // 3 - Task
+    const taskText = cleaned.replace(/^\d+[\).\-\s]+/, "");
+
+    tasks.push({
+      text: taskText,
+      completed: false
+    });
+  });
+
+  document.getElementById("transcription").value = "";
+
+  saveTasks();
+  renderTasks();
+}
 
     function toggleTask(index) {
       tasks[index].completed = !tasks[index].completed;
