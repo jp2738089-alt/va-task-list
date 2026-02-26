@@ -91,7 +91,6 @@
 
       if (!text.trim()) return;
 
-      // SMART LINE SPLIT (works everywhere)
       const lines = text.split(/\r?\n/);
 
       lines.forEach(line => {
@@ -99,14 +98,9 @@
 
         if (!cleaned) return;
 
-        // Remove numbering styles:
-        // 1. Task
-        // 2) Task
-        // 3 - Task
-        const taskText = cleaned.replace(/^\d+[\).\-\s]+/, "");
-
+        // ✅ KEEP FULL TEXT (Numbers preserved)
         tasks.push({
-          text: taskText,
+          text: cleaned,
           completed: false
         });
       });
