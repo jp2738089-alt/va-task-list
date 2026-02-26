@@ -26,23 +26,27 @@
       margin-bottom: 10px;
     }
 
-    .task {
-      display: flex;
-      align-items: center;
+    ol {
+      padding-left: 20px;
+    }
+
+    li {
       margin: 8px 0;
       padding: 10px;
       background: #f9fafb;
       border-radius: 8px;
+      display: flex;
+      align-items: center;
     }
 
-    .task.completed span {
+    .completed span {
       text-decoration: line-through;
       opacity: 0.5;
     }
 
     button {
+      margin-left: auto;
       cursor: pointer;
-      margin-top: 5px;
     }
   </style>
 </head>
@@ -57,7 +61,7 @@
 
     <hr>
 
-    <div id="taskList"></div>
+    <ol id="taskList"></ol>
   </div>
 
   <script>
@@ -72,17 +76,17 @@
       list.innerHTML = "";
 
       tasks.forEach((task, index) => {
-        const div = document.createElement("div");
-        div.className = "task " + (task.completed ? "completed" : "");
+        const li = document.createElement("li");
+        li.className = task.completed ? "completed" : "";
 
-        div.innerHTML = `
+        li.innerHTML = `
           <input type="checkbox" ${task.completed ? "checked" : ""} 
             onchange="toggleTask(${index})" />
           <span style="margin-left: 10px;">${task.text}</span>
-          <button style="margin-left:auto;" onclick="deleteTask(${index})">❌</button>
+          <button onclick="deleteTask(${index})">❌</button>
         `;
 
-        list.appendChild(div);
+        list.appendChild(li);
       });
     }
 
@@ -95,10 +99,8 @@
 
       lines.forEach(line => {
         const cleaned = line.trim();
-
         if (!cleaned) return;
 
-        // ✅ KEEP FULL TEXT (Numbers preserved)
         tasks.push({
           text: cleaned,
           completed: false
