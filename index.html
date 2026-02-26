@@ -16,14 +16,30 @@
       background: white;
       padding: 25px;
       border-radius: 12px;
-      width: 500px;
+      width: 520px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
 
     textarea {
       width: 100%;
-      height: 120px;
+      height: 100px;
       margin-bottom: 10px;
+    }
+
+    input, select {
+      margin-bottom: 10px;
+      width: 100%;
+      padding: 6px;
+    }
+
+    .controls {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .controls button {
+      flex: 1;
     }
 
     ol {
@@ -37,6 +53,11 @@
       border-radius: 8px;
       display: flex;
       align-items: center;
+      transition: all 0.2s ease;
+    }
+
+    li:hover {
+      transform: scale(1.02);
     }
 
     .completed span {
@@ -44,9 +65,28 @@
       opacity: 0.5;
     }
 
+    .high { border-left: 4px solid red; }
+    .normal { border-left: 4px solid orange; }
+    .low { border-left: 4px solid green; }
+
     button {
-      margin-left: auto;
       cursor: pointer;
+    }
+
+    #stats {
+      margin-bottom: 10px;
+      font-size: 14px;
+      font-weight: bold;
+    }
+
+    .task-text {
+      margin-left: 10px;
+      flex: 1;
+    }
+
+    .task-actions {
+      display: flex;
+      gap: 4px;
     }
   </style>
 </head>
@@ -55,9 +95,30 @@
   <div class="app">
     <h2>VA Task Generator</h2>
 
+    <select id="clientSelect" onchange="switchClient()">
+      <option>Clayton</option>
+      <option>Deanne</option>
+    </select>
+
+    <div id="stats"></div>
+
+    <input id="search" placeholder="Search tasks..." oninput="renderTasks()" />
+
+    <select id="filter" onchange="renderTasks()">
+      <option value="all">All Tasks</option>
+      <option value="pending">Pending</option>
+      <option value="completed">Completed</option>
+      <option value="high">High Priority</option>
+    </select>
+
     <textarea id="transcription" placeholder="Paste tasks here..."></textarea>
 
-    <button onclick="generateTasks()">Generate Tasks</button>
+    <div class="controls">
+      <button onclick="generateTasks()">Generate</button>
+      <button onclick="clearCompleted()">Clear Completed</button>
+      <button onclick="copyTasks()">Copy</button>
+      <button onclick="downloadCSV()">CSV</button>
+    </div>
 
     <hr>
 
@@ -65,34 +126,83 @@
   </div>
 
   <script>
-    let tasks = JSON.parse(localStorage.getItem("va_tasks")) || [];
+    let client = localStorage.getItem("va_client") || "Clayton";
+    document.getElementById("clientSelect").value = client;
+
+    function getStorageKey() {
+      return "va_tasks_" + client;
+    }
+
+    let tasks = JSON.parse(localStorage.getItem(getStorageKey())) || [];
 
     function saveTasks() {
-      localStorage.setItem("va_tasks", JSON.stringify(tasks));
+      localStorage.setItem(getStorageKey(), JSON.stringify(tasks));
+    }
+
+    function switchClient() {
+      client = document.getElementById("clientSelect").value;
+      localStorage.setItem("va_client", client);
+      tasks = JSON.parse(localStorage.getItem(getStorageKey())) || [];
+      renderTasks();
+    }
+
+    function renderStats() {
+      const total = tasks.length;
+      const completed = tasks.filter(t => t.completed).length;
+      const pending = total - completed;
+
+      document.getElementById("stats").innerHTML =
+        `Total: ${total} | Pending: ${pending} | Completed: ${completed}`;
     }
 
     function renderTasks() {
+      renderStats();
+
       const list = document.getElementById("taskList");
+      const search = document.getElementById("search").value.toLowerCase();
+      const filter = document.getElementById("filter").value;
+
       list.innerHTML = "";
 
-      tasks.forEach((task, index) => {
-        const li = document.createElement("li");
-        li.className = task.completed ? "completed" : "";
+      tasks
+        .sort((a, b) => {
+          const order = { High: 1, Normal: 2, Low: 3 };
+          return order[a.priority] - order[b.priority];
+        })
+        .forEach((task, index) => {
 
-        li.innerHTML = `
-          <input type="checkbox" ${task.completed ? "checked" : ""} 
-            onchange="toggleTask(${index})" />
-          <span style="margin-left: 10px;">${task.text}</span>
-          <button onclick="deleteTask(${index})">❌</button>
-        `;
+          if (search && !task.text.toLowerCase().includes(search)) return;
+          if (filter === "pending" && task.completed) return;
+          if (filter === "completed" && !task.completed) return;
+          if (filter === "high" && task.priority !== "High") return;
 
-        list.appendChild(li);
-      });
+          const li = document.createElement("li");
+          li.className = `${task.completed ? "completed" : ""} ${task.priority.toLowerCase()}`;
+
+          li.innerHTML = `
+            <input type="checkbox" ${task.completed ? "checked" : ""}
+              onchange="toggleTask(${index})" />
+
+            <span class="task-text">${task.text}</span>
+
+            <select onchange="setPriority(${index}, this.value)">
+              <option ${task.priority==="High"?"selected":""}>High</option>
+              <option ${task.priority==="Normal"?"selected":""}>Normal</option>
+              <option ${task.priority==="Low"?"selected":""}>Low</option>
+            </select>
+
+            <div class="task-actions">
+              <button onclick="editTask(${index})">✏️</button>
+              <button onclick="deleteTask(${index})">❌</button>
+            </div>
+          `;
+
+          list.appendChild(li);
+        });
     }
 
     function generateTasks() {
       const text = document.getElementById("transcription").value;
-
       if (!text.trim()) return;
 
       const lines = text.split(/\r?\n/);
@@ -101,9 +211,12 @@
         const cleaned = line.trim();
         if (!cleaned) return;
 
+        if (tasks.some(t => t.text === cleaned)) return;
+
         tasks.push({
           text: cleaned,
-          completed: false
+          completed: false,
+          priority: "Normal"
         });
       });
 
@@ -123,6 +236,48 @@
       tasks.splice(index, 1);
       saveTasks();
       renderTasks();
+    }
+
+    function editTask(index) {
+      const newText = prompt("Edit task:", tasks[index].text);
+      if (!newText) return;
+
+      tasks[index].text = newText;
+      saveTasks();
+      renderTasks();
+    }
+
+    function setPriority(index, value) {
+      tasks[index].priority = value;
+      saveTasks();
+      renderTasks();
+    }
+
+    function clearCompleted() {
+      tasks = tasks.filter(t => !t.completed);
+      saveTasks();
+      renderTasks();
+    }
+
+    function copyTasks() {
+      const text = tasks.map(t => t.text).join("\n");
+      navigator.clipboard.writeText(text);
+      alert("Tasks copied!");
+    }
+
+    function downloadCSV() {
+      let csv = "Task,Priority,Completed\n";
+      tasks.forEach(t => {
+        csv += `"${t.text}","${t.priority}","${t.completed}"\n`;
+      });
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "tasks.csv";
+      a.click();
     }
 
     renderTasks();
